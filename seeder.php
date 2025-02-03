@@ -3,7 +3,7 @@ require_once 'config/database.php';
 
 try {
     // Crear el usuario y la base de datos si no existen
-    $rootConn = new PDO("mysql:host=localhost", "root", "");
+    $rootConn = new PDO("mysql:host=localhost", "boardsgw_usr", "Gl\$ssWING01");
     $rootConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // Crear base de datos
