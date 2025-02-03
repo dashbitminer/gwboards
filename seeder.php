@@ -2,19 +2,35 @@
 require_once 'config/database.php';
 
 try {
-    // Crear el usuario y la base de datos si no existen
-    $rootConn = new PDO("mysql:host=localhost", "boardsgw_usr", "Gl\$ssWING01");
-    $rootConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // Crear base de datos
-    $rootConn->exec("CREATE DATABASE IF NOT EXISTS boardsgw");
-    
-    // Crear usuario
-    $rootConn->exec("CREATE USER IF NOT EXISTS 'boardsgw_usr'@'localhost' IDENTIFIED BY 'Gl\$ssWING01'");
-    $rootConn->exec("GRANT ALL PRIVILEGES ON boardsgw.* TO 'boardsgw_usr'@'localhost'");
-    $rootConn->exec("FLUSH PRIVILEGES");
+    // Intentar conectar como root primero
+    try {
+        $rootConn = new PDO("mysql:host=localhost", "root", "");
+        $rootConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        // Verificar si tenemos privilegios para crear usuarios
+        $stmt = $rootConn->query("SHOW GRANTS");
+        $hasCreatePrivilege = false;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if (strpos(array_values($row)[0], 'CREATE USER') !== false) {
+                $hasCreatePrivilege = true;
+                break;
+            }
+        }
 
-    // Conectar a la nueva base de datos
+        if ($hasCreatePrivilege) {
+            // Crear base de datos y usuario si tenemos privilegios
+            $rootConn->exec("CREATE DATABASE IF NOT EXISTS boardsgw");
+            $rootConn->exec("CREATE USER IF NOT EXISTS 'boardsgw_usr'@'localhost' IDENTIFIED BY 'Gl\$ssWING01'");
+            $rootConn->exec("GRANT ALL PRIVILEGES ON boardsgw.* TO 'boardsgw_usr'@'localhost'");
+            $rootConn->exec("FLUSH PRIVILEGES");
+            echo "Base de datos y usuario creados correctamente\n";
+        }
+    } catch (PDOException $e) {
+        // Si no podemos conectar como root o no tenemos privilegios, continuamos con la conexión normal
+        echo "No se pudo crear la base de datos y usuario (se requieren privilegios de root)\n";
+    }
+
+    // Conectar con el usuario normal
     $database = new Database();
     $db = $database->getConnection();
 
@@ -106,7 +122,7 @@ try {
         $stmt->execute();
     }
 
-    echo "Base de datos, tablas, usuario y datos de prueba creados correctamente\n";
+    echo "Tablas y datos de prueba creados correctamente\n";
 
 } catch(PDOException $e) {
     echo "Error: " . $e->getMessage() . "\n";
